@@ -53,6 +53,10 @@ class Service2Captcha:
     
     def get_captcha_token(self):
         captcha_token = self.solver.turnstile(sitekey=CAPTCHA_PARAMS['website_key'], url=CAPTCHA_PARAMS['website_url'])
+
+        if 'code' in captcha_token:
+            captcha_token = captcha_token['code']
+
         return captcha_token
 
     async def get_captcha_token_async(self):
