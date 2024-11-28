@@ -87,8 +87,7 @@ class AccountManager:
                 client = NodePayClient(email=email, password=password, proxy=proxy_url, user_agent=user_agent)
                 async with client:
                     if action == "register":
-                        ref_code = random.choice([random.choice(self.ref_codes or [None]),
-                                              random.choice(['leuskp97adNcZLs', 'VNhYgLnOjp5lZg9', '3zYqqXiWTMR1qRH'])])
+                        ref_code = random.choice(self.ref_codes)
 
                         res = await client.register(ref_code, self.captcha_service)
 
