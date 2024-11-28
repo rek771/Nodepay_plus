@@ -1,29 +1,33 @@
-import customtkinter as ctk
 import asyncio
-import json
-import os
+import sys
+from core.utils.logger import logger
 
-from core.utils.logger import *
-from customtkinter_gui import BotGUI
-
-SETTINGS_FILE = "settings.json"
-
-def load_settings():
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_settings(settings):
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f)
+def check_tkinter_available():
+    try:
+        import customtkinter
+        return True
+    except ImportError:
+        return False
 
 if __name__ == "__main__":
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    root = ctk.CTk()
+    try:
+        if check_tkinter_available():
+            logger.info("Starting GUI version...")
+            import customtkinter as ctk
+            from customtkinter_gui import BotGUI
 
-    app = BotGUI(root)
-    app.setup_logger()
-    root.mainloop()
+            root = ctk.CTk()
+            app = BotGUI(root)
+            app.setup_logger()
+            root.mainloop()
+        else:
+            logger.info("Starting console version...")
+            from core.menu import ConsoleMenu
+            menu = ConsoleMenu()
+            asyncio.run(menu.run())
+            
+    except KeyboardInterrupt:
+        logger.info("Application terminated by user")
