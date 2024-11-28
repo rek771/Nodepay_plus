@@ -190,6 +190,9 @@ class NodePayClient(BaseClient):
             )
             
             return await self.info(access_token)
+        except CloudflareException as e:
+            logger.error('CloudflareException when ping')
+            pass
         except Exception as e:
             tokens = self.load_tokens()
             if self.email in tokens:
