@@ -146,11 +146,7 @@ class AccountManager:
                 )
 
                 ref_code = random.choice(
-                    self.ref_codes or [
-                        'leuskp97adNcZLs',
-                        'VNhYgLnOjp5lZg9',
-                        '3zYqqXiWTMR1qRH'
-                    ]
+                    self.ref_codes
                 )
 
             for _ in range(3):
