@@ -56,7 +56,8 @@ class BaseClient:
                     headers=headers,
                     json=json_data and self._json_data_validator(json_data),
                     timeout=30,
-                    proxy=self.proxy
+                    proxy=self.proxy,
+                    impersonate="chrome110"
                 )
                 if response.status_code in [403, 400]:
                     raise CloudflareException('Cloudflare protection detected')
@@ -64,9 +65,9 @@ class BaseClient:
                 try:
                     response_json = response.json()
                 except json.JSONDecodeError:
-                    logger.error(f"Failed to parse JSON response: {response.text}")
-                    raise
-                
+                    continue
+                    # logger.error(f"Failed to parse JSON response")
+
                 if not response.ok:
                     error_msg = response_json.get('error', 'Unknown error')
                     logger.error(f"Request failed with status {response.status_code}: {error_msg}")

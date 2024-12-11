@@ -9,7 +9,7 @@ from random_username.generate import generate_username
 from tenacity import retry, stop_after_attempt, retry_if_not_exception_type
 
 from core.base_client import BaseClient
-from core.models.exceptions import LoginError, TokenError, CloudflareException
+from core.models.exceptions import LoginError, TokenError, CloudflareException, MineError
 from core.utils import logger
 from core.utils.person import Person
 
@@ -77,21 +77,17 @@ class NodePayClient(BaseClient):
             'accept': '*/*',
             'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/json',
-            'origin': 'https://app.nodepay.ai',
+            'origin': 'chrome-extension://lgmpfmgeabnnlemejacfljbmonaomfmm',
             'priority': 'u=1, i',
-            'referer': 'https://app.nodepay.ai/',
-            'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'cross-site',
+            'sec-fetch-site': 'none',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         }
 
     def _ping_headers(self, access_token: str):
         headers = self._auth_headers()
-        return headers.update({"Authorization": f"Bearer {access_token}"}) or headers
+        return headers.update({"authorization": f"Bearer {access_token}"}) or headers
 
     async def register(self, ref_code: str, captcha_service):
         captcha_token = await captcha_service.get_captcha_token_async()
@@ -160,6 +156,7 @@ class NodePayClient(BaseClient):
             url='https://api.nodepay.org/api/earn/info?',
             headers=self._ping_headers(access_token)
         )
+
         return response['data'].get('total_earning', 0)
 
     async def get_auth_token(self, captcha_service):
@@ -181,21 +178,23 @@ class NodePayClient(BaseClient):
             'version': '2.2.7'
         }
 
-        try:
-            await self.make_request(
-                method='POST',
-                url='https://nw.nodepay.org/api/network/ping',
-                headers=self._ping_headers(access_token),
-                json_data=json_data
-            )
-            
-            return await self.info(access_token)
-        except CloudflareException as e:
-            logger.error('CloudflareException when ping')
-            pass
-        except Exception as e:
-            tokens = self.load_tokens()
-            if self.email in tokens:
-                del tokens[self.email]
-                self.save_tokens(tokens)
-            raise TokenError("Token invalid or expired") from e
+        res = await self.make_request(
+            method='POST',
+            url='https://nw.nodepay.org/api/network/ping',
+            headers=self._ping_headers(access_token),
+            json_data=json_data
+        )
+
+        if not res.get('success'):
+            code = res.get('code', '')
+            if code == -240:
+                # Token invalid
+                tokens = self.load_tokens()
+                if self.email in tokens:
+                    del tokens[self.email]
+                    self.save_tokens(tokens)
+                raise TokenError("Token invalid or expired")
+            else:
+                raise MineError(res.get('msg', 'Unknown mining error'))
+
+        return True
